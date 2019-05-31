@@ -104,7 +104,8 @@ then
 	-v "${REPO_ROOT}"/examples:/opt/src/examples \
 	-v ${RASTER_VISION_DATA_DIR}:/opt/data \
 	-v $(pwd)/src:/opt/plugin \
-	-e PYTHONPATH='$PYTHONPATH:/opt/plugin' \
+	-v $(pwd)/dependencies:/opt/dependencies \
+	-e PYTHONPATH='$PYTHONPATH:/opt/plugin:/opt/src:/opt/dependencies' \
         ${TENSORBOARD} ${AWS} ${JUPYTER} ${DOCS} \
         ${RV_SRC_FLAGS} \
         ${IMAGE} "${CMD[@]}"
