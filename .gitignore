@@ -69,3 +69,6 @@ docs/_build
 
 # Dependencies mounted into the docker container
 dependencies
+
+# Jupyter
+.ipynb_checkpoints
