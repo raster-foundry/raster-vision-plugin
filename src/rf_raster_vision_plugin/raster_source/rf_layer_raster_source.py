@@ -160,7 +160,6 @@ class RfLayerRasterSource(rv.data.RasterSource):
                     self.affine = src.meta["transform"]
         self.resolution = cell_size
 
-    # TODO doesn't currently do pixels oops
     def get_extent(self):
         """Calculate the bounding box in pixels of this raster source"""
         if not self.rf_scenes:
@@ -169,9 +168,11 @@ class RfLayerRasterSource(rv.data.RasterSource):
         poly = cascaded_union([shape(x["dataFootprint"]) for x in self.rf_scenes])
         (xmin, ymin, xmax, ymax) = poly.bounds
 
-        # TODO use transformer map_to_pixel to get dims from bounds
+        transformer = self.get_crs_transformer()
+        (pixel_xmin, pixel_ymin) = transformer.map_to_pixel((xmin, ymin))
+        (pixel_xmax, pixel_ymax) = transformer.map_to_pixel((xmax, ymax))
 
-        return Box(ymin, xmin, ymax, xmax)
+        return Box(pixel_ymax, pixel_xmin, pixel_ymin, pixel_xmax)
 
     def get_dtype(self) -> np.dtype:
         """Determine the highest density datatype in this raster source"""
