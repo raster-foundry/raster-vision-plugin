@@ -1,34 +1,19 @@
-import rastervision as rv
-from rastervision.core import Box
-from rastervision.data.crs_transformer import CRSTransformer, RasterioCRSTransformer
-
+from tempfile import gettempdir
 from uuid import UUID
 
 from mypy.types import List, Optional, Tuple
 import numpy as np
-from pyproj import Proj, transform
 import rasterio
 from rasterio.io import MemoryFile
 from rasterio.transform import xy
+import rastervision as rv
+from rastervision.core import Box
+from rastervision.data.crs_transformer import CRSTransformer, RasterioCRSTransformer
+from rastervision.data.raster_source.rasterio_source import RasterioSource
+
 import requests
 from shapely.geometry import shape
 from shapely.ops import cascaded_union
-
-LAT_LNG = Proj(init="EPSG:4326")
-
-
-def _zoom_level_from_resolution(target_reso: float) -> int:
-    zooms_with_resolutions = [(n, 156412 / (2 ** n)) for n in range(30)]
-    out = 0
-    for (zoom, zoom_reso) in zooms_with_resolutions:
-        if zoom_reso < target_reso:
-            out = zoom
-            break
-    return out
-
-
-def _to_latlng(point: Tuple[int, int], src: Proj) -> Tuple[int, int]:
-    return transform(src, LAT_LNG, point[0], point[1])
 
 
 class RfLayerRasterSource(rv.data.RasterSource):
@@ -61,8 +46,6 @@ class RfLayerRasterSource(rv.data.RasterSource):
         self._token = None  # Optional[str]
         self._crs_transformer = None  # Optional[str]
         self.rf_scenes = None  # Optional[dict]
-        self.resolution = None  # Optional[float]
-        self.affine = None  # Optional[rasterio.Affine]
         self.channel_order = channel_order
         self.project_id = project_id
         self.project_layer_id = project_layer_id
@@ -71,8 +54,17 @@ class RfLayerRasterSource(rv.data.RasterSource):
         self.refresh_token = refresh_token
         self._get_api_token()
 
-        self.set_rf_scenes()
-        self.set_resolution()
+        self.rf_scenes = self.get_rf_scenes()
+        self._rasterio_source = RasterioSource(
+            [
+                x["ingestLocation"]
+                for x in self.rf_scenes
+                if x["statusFields"]["ingestStatus"] == "INGESTED"
+            ],
+            [],
+            gettempdir(),
+        )
+        self._rasterio_source._activate()
 
     def _get_api_token(self):
         """Use the refresh token on this raster source to obtain a bearer token"""
@@ -83,38 +75,7 @@ class RfLayerRasterSource(rv.data.RasterSource):
         resp.raise_for_status()
         self._token = resp.json()["id_token"]
 
-    def _get_chip(self, window: Box):
-        """Get a chip from a window (in pixel coordinates) for this raster source"""
-        zoom = _zoom_level_from_resolution(self.resolution)
-        transformer = self.get_crs_transformer()
-        map_proj = Proj(init=transformer.map_crs)
-        lower_left_map_coord = transformer.pixel_to_map((window.xmin, window.ymax))
-        upper_right_map_coord = transformer.pixel_to_map((window.xmax, window.ymin))
-        lower_left_lat_lng = _to_latlng(lower_left_map_coord, map_proj)
-        upper_right_lat_lng = _to_latlng(upper_right_map_coord, map_proj)
-        bbox = "{xmin},{ymin},{xmax},{ymax}".format(
-            xmin=lower_left_lat_lng[0],
-            ymin=lower_left_lat_lng[1],
-            xmax=upper_right_lat_lng[0],
-            ymax=upper_right_lat_lng[1],
-        )
-
-        geotiff_resp = requests.get(
-            "https://{tile_host}/{project_id}/layers/{project_layer_id}/export".format(
-                tile_host=self.rf_tile_host,
-                project_id=self.project_id,
-                project_layer_id=self.project_layer_id,
-            ),
-            params={"zoom": zoom, "bbox": bbox, "token": self._token},
-            headers={"Accept": "image/tiff"},
-        )
-        geotiff_resp.raise_for_status()
-        geotiff_bytes = geotiff_resp.content
-        with MemoryFile(geotiff_bytes) as inf:
-            with inf.open() as dataset:
-                return dataset.read()
-
-    def set_rf_scenes(self):
+    def get_rf_scenes(self):
         """Fetch all Raster Foundry scene metadata for this project layer"""
         scenes_url = "https://{api_host}/api/projects/{project_id}/layers/{layer_id}/scenes".format(
             api_host=self.rf_api_host,
@@ -134,79 +95,19 @@ class RfLayerRasterSource(rv.data.RasterSource):
             ).json()
             scenes.append(next_resp["results"])
             page += 1
-        self.rf_scenes = scenes
+        return scenes
 
-    def set_resolution(self):
-        """Determine the native resolution for this project layer"""
-        # If we've already set the resolution, don't do any more work
-        if self.resolution:
-            return
-        # If we don't have any scenes yet, go find them
-        if not self.rf_scenes:
-            self.set_rf_scenes()
-
-        cell_size = float("inf")
-        for i, scene in enumerate(self.rf_scenes):
-            with rasterio.open(scene["ingestLocation"], "r") as src:
-                # Use the x and y steps from the source transformation's affine matrix
-                # to determine the image's native resolution
-                cell_size = min(
-                    [
-                        np.sqrt(abs(src.meta["transform"].a * src.meta["transform"].e)),
-                        cell_size,
-                    ]
-                )
-                if i == 0:
-                    self.affine = src.meta["transform"]
-        self.resolution = cell_size
+    def _get_chip(self, window: Box):
+        """Get a chip from a window (in pixel coordinates) for this raster source"""
+        return self._rasterio_source._get_chip(window)
 
     def get_extent(self):
         """Calculate the bounding box in pixels of this raster source"""
-        if not self.rf_scenes:
-            self.set_rf_scenes()
-
-        poly = cascaded_union([shape(x["dataFootprint"]) for x in self.rf_scenes])
-        (xmin, ymin, xmax, ymax) = poly.bounds
-
-        transformer = self.get_crs_transformer()
-        (pixel_xmin, pixel_ymin) = transformer.map_to_pixel((xmin, ymin))
-        (pixel_xmax, pixel_ymax) = transformer.map_to_pixel((xmax, ymax))
-
-        return Box(pixel_ymax, pixel_xmin, pixel_ymin, pixel_xmax)
+        return self._rasterio_source.get_extent()
 
     def get_dtype(self) -> np.dtype:
         """Determine the highest density datatype in this raster source"""
-        if not self.rf_scenes:
-            self.set_rf_scenes()
-
-        dtype_char = ""
-        dtype_itemsize = 0
-        char_map = {"i": 1, "f": 2}
-        # First scene will always supersede base values, so this won't end up None
-        # for any RF project layers with scenes in them
-        cell_type = None
-
-        for scene in self.rf_scenes:
-            with rasterio.open(scene["ingestLocation"], "r") as src:
-                ct = np.dtype(src.meta["dtype"])
-                if (
-                    char_map[ct.char] > char_map.get(dtype_char, 0)
-                    and ct.itemsize > dtype_itemsize
-                ):
-                    dtype_char = ct.char
-                    dtype_itemsize = ct.itemsize
-                    cell_type = ct
-
-        return cell_type
+        return self._rasterio_source.get_dtype()
 
     def get_crs_transformer(self) -> CRSTransformer:
-
-        if self._crs_transformer:
-            return self._crs_transformer
-
-        if not self.rf_scenes:
-            self.set_rf_scenes()
-
-        scene = self.rf_scenes[0]
-        with rasterio.open(scene["ingestLocation"], "r") as inf:
-            return RasterioCRSTransformer.from_dataset(inf)
+        return self._rasterio_source.get_crs_transformer()
