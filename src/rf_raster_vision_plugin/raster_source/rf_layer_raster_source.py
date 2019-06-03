@@ -63,6 +63,7 @@ class RfLayerRasterSource(rv.data.RasterSource):
             ],
             [],
             gettempdir(),
+            channel_order=self.channel_order,
         )
         self._rasterio_source._activate()
 
