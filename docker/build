@@ -14,8 +14,6 @@ If the type is not specified, it will build both cpu and gpu Docker images.
 "
 }
 
-docker build -t raster-vision-base -f Dockerfile .
-
 if [ "${BASH_SOURCE[0]}" = "${0}" ]
 then
     if [ "${1:-}" = "--help" ]
@@ -26,10 +24,25 @@ then
 
     if [ $# -eq 0 -o "${1:-}" = "--cpu" ]
     then
-        docker build -t raster-vision-cpu -f Dockerfile-cpu .
+        if [ -z "$RASTER_VISION_REPO" ]
+        then
+            BASE_IMAGE="quay.io/azavea/raster-vision:cpu-latest"
+        else
+            BASE_IMAGE="raster-vision-cpu"
+        fi
+
+        docker build --build-arg BASE_IMAGE="$BASE_IMAGE" -t raster-vision-examples-cpu -f Dockerfile-cpu .
     fi
     if [ $# -eq 0 -o "${1:-}" = "--gpu" ]
     then
-        docker build -t raster-vision-gpu -f Dockerfile-gpu .
+        if [ -z "$RASTER_VISION_REPO" ]
+        then
+            BASE_IMAGE="quay.io/azavea/raster-vision:gpu-latest"
+        else
+            BASE_IMAGE="raster-vision-gpu"
+        fi
+
+        docker build --build-arg BASE_IMAGE="$BASE_IMAGE" -t raster-vision-examples-gpu -f Dockerfile-gpu .
     fi
 fi
+
