@@ -66,3 +66,9 @@ docs/_build
 
 # Mypy Cache
 .mypy_cache/
+
+# Dependencies mounted into the docker container
+dependencies
+
+# Jupyter
+.ipynb_checkpoints
