@@ -1,8 +1,23 @@
+Change Log
+==========
 
-Changelog
-=========
+`Unreleased <https://github.com/raster-foundry/raster-vision-plugin/tree/develop>`__
+------------------------------------------------------------------------------------
 
-0.0.1 (2019-05-22)
-------------------
+Added
+~~~~~
 
-* First release on PyPI.
+- RfAnnotationGroupLabelSource `#10 <https://github.com/raster-foundry/raster-vision-plugin/pull/10>`__
+- RfLayerRasterSource `#9 <https://github.com/raster-foundry/raster-vision-plugin/pull/9>`__
+
+Changed
+~~~~~~~
+
+Deprecated
+~~~~~~~~~~
+
+Fixed
+~~~~~
+
+Security
+~~~~~~~~
