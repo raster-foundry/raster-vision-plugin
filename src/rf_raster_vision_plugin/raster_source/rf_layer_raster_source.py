@@ -10,10 +10,11 @@ import rastervision as rv
 from rastervision.core import Box
 from rastervision.data.crs_transformer import CRSTransformer, RasterioCRSTransformer
 from rastervision.data.raster_source.rasterio_source import RasterioSource
-
 import requests
 from shapely.geometry import shape
 from shapely.ops import cascaded_union
+
+from rf_raster_vision_plugin.http.raster_foundry import get_api_token
 
 
 class RfLayerRasterSource(rv.data.RasterSource):
@@ -22,7 +23,6 @@ class RfLayerRasterSource(rv.data.RasterSource):
         project_id: UUID,
         project_layer_id: UUID,
         source_annotation_group_id: UUID,
-        experiment_id: UUID,
         refresh_token: str,
         channel_order: List[int],
         num_channels: int,
@@ -35,7 +35,6 @@ class RfLayerRasterSource(rv.data.RasterSource):
             project_id (UUID): A Raster Foundry project id
             project_layer_id (UUID): A Raster Foundry project layer id in this project
             source_annotation_group_id (UUID): A Raster Foundry annotation group id in this project layer
-            experiment_id (UUID): A Vision App experiment id
             refresh_token (str): A Raster Foundry refresh token to use to obtain an auth token
             channel_order (List[int]): The order in which to return bands
             num_channels (int): How many bands this raster source expects to have
@@ -69,12 +68,7 @@ class RfLayerRasterSource(rv.data.RasterSource):
 
     def _get_api_token(self):
         """Use the refresh token on this raster source to obtain a bearer token"""
-        resp = requests.post(
-            "https://{rf_api_host}/api/tokens".format(rf_api_host=self.rf_api_host),
-            json={"refresh_token": self.refresh_token},
-        )
-        resp.raise_for_status()
-        self._token = resp.json()["id_token"]
+        self._token = get_api_token(self.refresh_token, self.rf_api_host)
 
     def get_rf_scenes(self):
         """Fetch all Raster Foundry scene metadata for this project layer"""
