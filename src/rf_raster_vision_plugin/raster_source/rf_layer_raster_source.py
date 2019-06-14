@@ -50,8 +50,7 @@ class RfLayerRasterSource(rv.data.RasterSource):
         self.project_layer_id = project_layer_id
         self.rf_api_host = rf_api_host
         self.rf_tile_host = rf_tile_host
-        self.refresh_token = refresh_token
-        self._get_api_token()
+        self._get_api_token(refresh_token)
 
         self.rf_scenes = self.get_rf_scenes()
         self._rasterio_source = RasterioSource(
@@ -66,9 +65,9 @@ class RfLayerRasterSource(rv.data.RasterSource):
         )
         self._rasterio_source._activate()
 
-    def _get_api_token(self):
+    def _get_api_token(self, refresh_token):
         """Use the refresh token on this raster source to obtain a bearer token"""
-        self._token = get_api_token(self.refresh_token, self.rf_api_host)
+        self._token = get_api_token(refresh_token, self.rf_api_host)
 
     def get_rf_scenes(self):
         """Fetch all Raster Foundry scene metadata for this project layer"""
