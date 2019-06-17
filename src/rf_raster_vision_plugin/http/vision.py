@@ -6,7 +6,7 @@ from uuid import UUID
 
 class Experiment(object):
     # TODO: fill in from experiment create non-optional members
-    def __init__(self) -> Experiment:
+    def __init__(self):
         pass
 
 

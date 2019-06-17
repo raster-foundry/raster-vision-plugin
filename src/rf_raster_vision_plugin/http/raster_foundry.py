@@ -34,12 +34,12 @@ def get_labels(
         resp.raise_for_status()
         return resp.json()
 
-    base_params = {"annotationGroup": annotation_group_id, "pageSize": 100, "page": 0}
+    params = {"annotationGroup": annotation_group_id, "pageSize": 100, "page": 0}
 
-    geojson = make_request(base_params)
+    geojson = make_request(params)
 
     while geojson["hasNext"]:
-        params["page"] += 1
+        params["page"] = params["page"] + 1  # type: ignore
         resp = make_request(params)
         geojson["hasNext"] = resp["hasNext"]
         geojson["features"] += resp["features"]

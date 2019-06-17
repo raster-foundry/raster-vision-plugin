@@ -42,7 +42,7 @@ class RfAnnotationGroupLabelSource(LabelSource):
             rf_api_host (str): The url host name to use for communicating with Raster Foundry
         """
 
-        self._token = None
+        self._token = ""
         self._labels = None  # dict
         self.annotation_group = annotation_group
         self.project_id = project_id
