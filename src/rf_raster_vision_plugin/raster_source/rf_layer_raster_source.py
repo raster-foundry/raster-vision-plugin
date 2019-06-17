@@ -22,34 +22,30 @@ class RfLayerRasterSource(rv.data.RasterSource):
         self,
         project_id: UUID,
         project_layer_id: UUID,
-        source_annotation_group_id: UUID,
         refresh_token: str,
         channel_order: List[int],
         num_channels: int,
         rf_api_host: str = "app.staging.rasterfoundry.com",
-        rf_tile_host: str = "tiles.staging.rasterfoundry.com",
     ):
         """Construct a new RasterSource
 
         Args:
             project_id (UUID): A Raster Foundry project id
             project_layer_id (UUID): A Raster Foundry project layer id in this project
-            source_annotation_group_id (UUID): A Raster Foundry annotation group id in this project layer
             refresh_token (str): A Raster Foundry refresh token to use to obtain an auth token
             channel_order (List[int]): The order in which to return bands
             num_channels (int): How many bands this raster source expects to have
             rf_api_host (str): The url host name to use for communicating with Raster Foundry
-            rf_tile_host (str): The url host name to use for communicating with the Raster Foundry tile server
         """
 
         self._token = None  # Optional[str]
         self._crs_transformer = None  # Optional[str]
         self.rf_scenes = None  # Optional[dict]
         self.channel_order = channel_order
+        self.num_channels = num_channels
         self.project_id = project_id
         self.project_layer_id = project_layer_id
         self.rf_api_host = rf_api_host
-        self.rf_tile_host = rf_tile_host
         self._get_api_token(refresh_token)
 
         self.rf_scenes = self.get_rf_scenes()
