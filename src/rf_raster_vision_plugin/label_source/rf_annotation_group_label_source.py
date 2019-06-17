@@ -31,7 +31,6 @@ class RfAnnotationGroupLabelSource(LabelSource):
         refresh_token: str,
         crs_transformer: CRSTransformer,
         rf_api_host: str = "app.staging.rasterfoundry.com",
-        rf_tile_host: str = "tiles.staging.rasterfoundry.com",
     ):
         """Construct a new LabelSource
 
@@ -41,20 +40,17 @@ class RfAnnotationGroupLabelSource(LabelSource):
             project_layer_id (UUID): A Raster Foundry project layer id in this project
             refresh_token (str): A Raster Foundry refresh token to use to obtain an auth token
             rf_api_host (str): The url host name to use for communicating with Raster Foundry
-            rf_tile_host (str): The url host name to use for communicating with the Raster Foundry tile server
         """
 
-        self._token = None
+        self._token = ""
         self._labels = None  # dict
         self.annotation_group = annotation_group
         self.project_id = project_id
         self.project_layer_id = project_layer_id
-        self.refresh_token = refresh_token
         self.crs_transformer = crs_transformer
         self.rf_api_host = rf_api_host
-        self.rf_tile_host = rf_tile_host
 
-        self._get_api_token()
+        self._get_api_token(refresh_token)
         self._set_labels()
         self._set_class_map()
         self._set_rv_labels()
@@ -70,8 +66,8 @@ class RfAnnotationGroupLabelSource(LabelSource):
             self.crs_transformer,
         )
 
-    def _get_api_token(self):
-        self._token = rf.get_api_token(self.refresh_token, self.rf_api_host)
+    def _get_api_token(self, refresh_token: str):
+        self._token = rf.get_api_token(refresh_token, self.rf_api_host)
 
     def _set_labels(self):
         self._raw_labels = rf.get_labels(
