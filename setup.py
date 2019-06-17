@@ -65,6 +65,7 @@ setup(
     python_requires='>=3.6',
     install_requires=[
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
+        'rastervision >= 0.9.0',
         'requests >= 2.22.0',
         'mypy >= 0.701'
     ],
