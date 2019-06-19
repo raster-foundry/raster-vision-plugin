@@ -7,5 +7,6 @@ from rastervision.evaluation.object_detection_evaluator import ObjectDetectionEv
 # where a ClassEvaluationItem is one of these:
 # https://github.com/azavea/raster-vision/blob/master/rastervision/evaluation/class_evaluation_item.py#L6-L84
 
+
 class VisionObjectDetectionEvaluator(ObjectDetectionEvaluator):
     pass

@@ -1,4 +1,5 @@
 from requests.models import Response
+from rastervision.evaluation.class_evaluation_item import ClassEvaluationItem
 
 
 from uuid import UUID
@@ -41,7 +42,9 @@ def create_experiment_for_project(experiment: Experiment, project_id: UUID) -> R
     pass
 
 
-def save_experiment_scores(experiment_id: UUID, f1_score: float, precision: float, recall: float) -> Response:
+def save_experiment_scores(
+    experiment_id: UUID, eval_item: ClassEvaluationItem
+) -> Response:
     """Save evaluation scores for an experiment
 
     Args:
