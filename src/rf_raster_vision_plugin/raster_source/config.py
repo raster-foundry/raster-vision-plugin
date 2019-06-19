@@ -4,7 +4,10 @@ from uuid import uuid4, UUID
 import rastervision as rv
 from rastervision.core.config import ConfigBuilder
 from rastervision.data.raster_source.raster_source_config import RasterSourceConfig
-from typing import List, Optional, TypeVar
+from typing import List, Optional
+
+from .rf_layer_raster_source import RfLayerRasterSource
+from ..immutable_builder import ImmutableBuilder
 
 
 class RfRasterSourceConfig(RasterSourceConfig):
@@ -31,17 +34,32 @@ class RfRasterSourceConfig(RasterSourceConfig):
         self.num_channels = num_channels or self.num_channels
         self.rf_api_host = rf_api_host or self.rf_api_host
 
-    def create_local(self, tmp_dir):
-        pass
+    def create_local(self, tmp_dir: str):
+        return self
 
-    def create_source(self, tmp_dir, crs_transformer, extent, class_map):
-        pass
+    def create_source(
+        self, tmp_dir, crs_transformer=None, extent=None, class_map=None
+    ) -> RfLayerRasterSource:
+        """Create the RfLayerRasterSource for this config
+
+        crs_transformer, extent, and class_map are all provided for ABC compatibility,
+        but they are not used.
+        """
+        return RfLayerRasterSource(
+            self.project_id,
+            self.project_layer_id,
+            self.refresh_token,
+            self.channel_order,
+            self.num_channels,
+            tmp_dir,
+            self.rf_api_host,
+        )
 
     def for_prediction(self, image_uri):
-        pass
+        return self
 
 
-class RfRasterSourceConfigBuilder(ConfigBuilder):
+class RfRasterSourceConfigBuilder(ConfigBuilder, ImmutableBuilder):
 
     _properties = [
         "project_id",
@@ -52,24 +70,10 @@ class RfRasterSourceConfigBuilder(ConfigBuilder):
         "rf_api_host",
     ]
     config_class = RfRasterSourceConfig
-    T = TypeVar("T")
 
     def __init__(self):
         super(ConfigBuilder, self).__init__()
         self.rf_api_host = "app.staging.rasterfoundry.com"
-
-    def with_property(self, property_name: str, property_value: T):
-        b = deepcopy(self)
-        setattr(b, property_name, property_value)
-        return b
-
-    @property
-    def config(self):
-        return {
-            k: getattr(self, k)
-            for k in self._properties
-            if getattr(self, k) is not None
-        }
 
     def from_proto(self, msg):
         return (

@@ -1,4 +1,3 @@
-from tempfile import gettempdir
 from uuid import UUID
 
 from mypy.types import List, Optional, Tuple
@@ -25,6 +24,7 @@ class RfLayerRasterSource(rv.data.RasterSource):
         refresh_token: str,
         channel_order: List[int],
         num_channels: int,
+        tmp_dir: str,
         rf_api_host: str = "app.staging.rasterfoundry.com",
     ):
         """Construct a new RasterSource
@@ -56,7 +56,7 @@ class RfLayerRasterSource(rv.data.RasterSource):
                 if x["statusFields"]["ingestStatus"] == "INGESTED"
             ],
             [],
-            gettempdir(),
+            tmp_dir,
             channel_order=self.channel_order,
         )
         self._rasterio_source._activate()

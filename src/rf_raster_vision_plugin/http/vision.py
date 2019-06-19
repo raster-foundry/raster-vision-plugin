@@ -39,3 +39,12 @@ def create_experiment_for_project(experiment: Experiment, project_id: UUID) -> R
     """
 
     pass
+
+
+def save_experiment_scores(experiment_id: UUID, f1_score: float, precision: float, recall: float) -> Response:
+    """Save evaluation scores for an experiment
+
+    Args:
+        experiment (Experiment): the experiment to update
+    """
+    pass
