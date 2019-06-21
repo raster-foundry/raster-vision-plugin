@@ -97,8 +97,9 @@ class RfLabelStoreConfigBuilder(ConfigBuilder, ImmutableBuilder):
         self.rf_api_host = "app.staging.rasterfoundry.com"
 
     def from_proto(self, msg):
+        b = super().from_proto(msg)
         return (
-            self.with_annotation_group(msg.annotation_group)
+            b.with_annotation_group(msg.annotation_group)
             .with_project_id(msg.project_id)
             .with_project_layer_id(msg.project_layer_id)
             .with_refresh_token(msg.refresh_token)

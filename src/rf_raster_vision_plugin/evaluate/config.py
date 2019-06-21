@@ -80,8 +80,9 @@ class VisionObjectDetectionEvaluatorConfigBuilder(ConfigBuilder, ImmutableBuilde
         self.vision_api_host = "prediction.staging.rasterfoundry.com"
 
     def from_proto(self, msg):
+        b = super().from_proto(msg)
         return (
-            self.with_project_id(msg.project_id)
+            b.with_project_id(msg.project_id)
             .with_experiment_id(msg.experiment_id)
             .with_refresh_token(msg.refresh_token)
             .with_class_map(msg.class_map)
