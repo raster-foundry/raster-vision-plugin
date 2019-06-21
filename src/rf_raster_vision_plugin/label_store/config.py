@@ -1,14 +1,33 @@
+from google.protobuf import struct_pb2
 from rastervision.core.config import ConfigBuilder
 from rastervision.data.crs_transformer import CRSTransformer
 from rastervision.data.label_store.label_store_config import LabelStoreConfig
+from rastervision.protos.label_store_pb2 import (
+    LabelStoreConfig as LabelStoreConfigMsg,
+)
 from .rf_annotation_group_label_store import RfAnnotationGroupLabelStore
 from ..immutable_builder import ImmutableBuilder
 
 from typing import Dict
 from uuid import UUID
 
+RF_ANNOTATION_GROUP_LABEL_STORE = "RF_ANNOTATION_GROUP_LABEL_STORE"
+
 
 class RfLabelStoreConfig(LabelStoreConfig):
+    store_type = "RF_ANNOTATION_GROUP_LABEL_STORE"
+
+    _properties = [
+        "annotation_group",
+        "project_id",
+        "project_layer_id",
+        "refresh_token",
+        "crs_transformer",
+        "class_map",
+        "rf_api_host",
+        "store_type",
+    ]
+
     def __init__(
         self,
         annotation_group,  # type: UUID
@@ -43,11 +62,24 @@ class RfLabelStoreConfig(LabelStoreConfig):
     def for_prediction(self):
         return self
 
-    def report_io(self):
+    def report_io(self, x, y):
         pass
+
+    def to_proto(self):
+        struct = struct_pb2.Struct()
+        for k in self._properties:
+            try:
+                if k != 'crs_transformer':
+                    struct[k] = getattr(self, k)
+
+            except Exception as e:
+                print('Bad key is: ' + k)
+                raise e
+        return LabelStoreConfigMsg(custom_config=struct)
 
 
 class RfLabelStoreConfigBuilder(ConfigBuilder, ImmutableBuilder):
+    store_type = "RF_ANNOTATION_GROUP_LABEL_STORE"
     config_class = RfLabelStoreConfig
     _properties = [
         "annotation_group",
@@ -57,6 +89,7 @@ class RfLabelStoreConfigBuilder(ConfigBuilder, ImmutableBuilder):
         "crs_transformer",
         "class_map",
         "rf_api_host",
+        "store_type",
     ]
 
     def __init__(self):
@@ -93,3 +126,6 @@ class RfLabelStoreConfigBuilder(ConfigBuilder, ImmutableBuilder):
 
     def with_rf_api_host(self, rf_api_host: str):
         return self.with_property("rf_api_host", rf_api_host)
+
+    def with_store_type(self, store_type: str):
+        return self.with_property("store_type", store_type)

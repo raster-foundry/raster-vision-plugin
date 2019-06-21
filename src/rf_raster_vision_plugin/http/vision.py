@@ -1,24 +1,60 @@
+import requests
 from requests.models import Response
 from rastervision.evaluation.class_evaluation_item import ClassEvaluationItem
 
 
+from typing import Optional
 from uuid import UUID
 
 
-class Experiment(object):
-    # TODO: fill in from experiment create non-optional members
-    def __init__(self):
-        pass
-
-
-def create_project(name: str) -> Response:
+def create_project(jwt: str, api_host: str, name: str) -> Response:
     """Create a project in the Vision API
 
     Args:
         name (str): the project to maybe create
     """
 
-    pass
+    resp = requests.post(
+        "https://{vision_api_host}/api/projects".format(vision_api_host=api_host),
+        headers={"Authorization": jwt},
+        json={"name": name},
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def create_experiment(
+    jwt: str,
+    api_host: str,
+    name: str,
+    project: UUID,
+    model: str,
+    model_type: str,
+    task_type: str,
+    status: str = "",
+    files_uri: Optional[str] = None,
+    config_uri: Optional[str] = None,
+    class_map: dict = {},
+):
+    resp = requests.post(
+        "https://{vision_api_host}/api/projects/{project_id}/experiments".format(
+            vision_api_host=api_host, project_id=project
+        ),
+        headers={"Authorization": jwt},
+        json={
+            "name": name,
+            "project": str(project),
+            "model": model,
+            "modelType": model_type,
+            "taskType": task_type,
+            "status": status,
+            "filesUri": files_uri,
+            "configUri": config_uri,
+            "classMap": class_map,
+        },
+    )
+    resp.raise_for_status()
+    return resp.json()
 
 
 def fetch_project(project_id: UUID) -> Response:
@@ -31,23 +67,33 @@ def fetch_project(project_id: UUID) -> Response:
     pass
 
 
-def create_experiment_for_project(experiment: Experiment, project_id: UUID) -> Response:
-    """Create an experiment for an existing project
-
-    Args:
-        experiment (Experiment): the experiment json to use in the request body
-        project_id (UUID): the id of the project to create this experiment in
-    """
-
-    pass
-
-
 def save_experiment_scores(
-    experiment_id: UUID, eval_item: ClassEvaluationItem
+    jwt: str,
+    api_host: str,
+    vision_project_id: UUID,
+    experiment_id: UUID,
+    eval_item: ClassEvaluationItem,
 ) -> Response:
     """Save evaluation scores for an experiment
 
     Args:
         experiment (Experiment): the experiment to update
     """
-    pass
+    headers = {"Authorization": jwt}
+    fetched = requests.get(
+        "https://{api_host}/api/projects/{project_id}/experiments/{experiment_id}".format(
+            api_host=api_host, project_id=vision_project_id, experiment_id=experiment_id
+        ),
+        headers=headers,
+    )
+    fetched.raise_for_status()
+    base_experiment = fetched.json()
+    base_experiment["f1Score"] = eval_item.f1_score
+    base_experiment["precision"] = eval_item.precision
+    base_experiment["recall"] = eval_item.recall
+    return requests.put(
+        "https://{api_host}/api/projects/{project_id}/experiments/{experiment_id}".format(
+            api_host=api_host, project_id=vision_project_id, experiment_id=experiment_id
+        ),
+        headers=headers,
+    )

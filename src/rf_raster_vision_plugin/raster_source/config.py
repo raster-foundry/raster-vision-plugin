@@ -1,38 +1,46 @@
-from copy import deepcopy
-from uuid import uuid4, UUID
+from uuid import UUID
 
-import rastervision as rv
+from google.protobuf import struct_pb2
 from rastervision.core.config import ConfigBuilder
 from rastervision.data.raster_source.raster_source_config import RasterSourceConfig
-from typing import List, Optional
+from rastervision.protos.raster_source_pb2 import (
+    RasterSourceConfig as RasterSourceConfigMsg,
+)
+from typing import List
 
 from .rf_layer_raster_source import RfLayerRasterSource
 from ..immutable_builder import ImmutableBuilder
 
+RF_LAYER_RASTER_SOURCE = "RF_LAYER_RASTER_SOURCE"
+
 
 class RfRasterSourceConfig(RasterSourceConfig):
-    project_id = uuid4()
-    project_layer_id = uuid4()
-    refresh_token = ""
-    channel_order = []  # type: List[int]
-    num_channels = 0
-    rf_api_host = "app.staging.rasterfoundry.com"
+    _properties = [
+        "project_id",
+        "project_layer_id",
+        "refresh_token",
+        "channel_order",
+        "num_channels",
+        "rf_api_host",
+        "source_type"
+    ]
+    source_type = "RF_LAYER_RASTER_SOURCE"
+    transformers = []
 
-    def __init__(
-        self,
-        project_id,  # type: Optional[UUID]
-        project_layer_id,  # type: Optional[UUID]
-        refresh_token,  # type: Optional[str]
-        channel_order,  # type: List[int]
-        num_channels,  # type: Optional[int]
-        rf_api_host,  # type: Optional[str]
+    def __init__(self,
+                 project_id,  # type: UUID
+                 project_layer_id,  # type: UUID
+                 refresh_token,  # type: str
+                 channel_order,  # type: List[int]
+                 num_channels,  # type: int
+                 rf_api_host,  # type: str
     ):
-        self.project_id = project_id or self.project_id
-        self.project_layer_id = project_layer_id or self.project_layer_id
-        self.refresh_token = refresh_token or self.refresh_token
-        self.channel_order = channel_order or self.channel_order
-        self.num_channels = num_channels or self.num_channels
-        self.rf_api_host = rf_api_host or self.rf_api_host
+        self.project_id = project_id
+        self.project_layer_id = project_layer_id
+        self.refresh_token = refresh_token
+        self.channel_order = channel_order
+        self.num_channels = num_channels
+        self.rf_api_host = rf_api_host
 
     def create_local(self, tmp_dir: str):
         return self
@@ -58,6 +66,12 @@ class RfRasterSourceConfig(RasterSourceConfig):
     def for_prediction(self, image_uri):
         return self
 
+    def to_proto(self):
+        struct = struct_pb2.Struct()
+        for k in self._properties:
+            struct[k] = getattr(self, k)
+        return RasterSourceConfigMsg(custom_config=struct)
+
 
 class RfRasterSourceConfigBuilder(ConfigBuilder, ImmutableBuilder):
 
@@ -68,8 +82,10 @@ class RfRasterSourceConfigBuilder(ConfigBuilder, ImmutableBuilder):
         "channel_order",
         "num_channels",
         "rf_api_host",
+        "source_type"
     ]
     config_class = RfRasterSourceConfig
+    source_type = RF_LAYER_RASTER_SOURCE
 
     def __init__(self):
         super(ConfigBuilder, self).__init__()
@@ -83,6 +99,7 @@ class RfRasterSourceConfigBuilder(ConfigBuilder, ImmutableBuilder):
             .with_channel_order(msg.channel_order)
             .with_num_channels(msg.num_channels)
             .with_rf_api_host(msg.rf_api_host)
+            .with_source_type(msg.source_type)
         )
 
     def with_project_id(self, project_id: UUID):
@@ -102,3 +119,6 @@ class RfRasterSourceConfigBuilder(ConfigBuilder, ImmutableBuilder):
 
     def with_rf_api_host(self, rf_api_host: str):
         return self.with_property("rf_api_host", rf_api_host)
+
+    def with_source_type(self, source_type: str):
+        return self.with_property("source_type", source_type)

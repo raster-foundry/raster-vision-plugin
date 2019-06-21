@@ -1,15 +1,13 @@
-from uuid import UUID
+import rf_raster_vision_plugin.http.raster_foundry as rf
+from ..with_token import WithRefreshToken
 
-from mypy.types import Optional
-import rastervision as rv
 from rastervision.core import Box
 from rastervision.data.crs_transformer import CRSTransformer
 from rastervision.data.label.object_detection_labels import ObjectDetectionLabels
 from rastervision.data.label_source import LabelSource
 from rastervision.data.vector_source.vector_source import transform_geojson
-from shapely.geometry import Polygon, shape
 
-import rf_raster_vision_plugin.http.raster_foundry as rf
+from uuid import UUID
 
 
 def _to_rv_feature(annotation: dict, class_map: dict) -> dict:
@@ -22,7 +20,7 @@ def _to_rv_feature(annotation: dict, class_map: dict) -> dict:
     }
 
 
-class RfAnnotationGroupLabelSource(LabelSource):
+class RfAnnotationGroupLabelSource(LabelSource, WithRefreshToken):
     def __init__(
         self,
         annotation_group: UUID,
@@ -49,8 +47,8 @@ class RfAnnotationGroupLabelSource(LabelSource):
         self.project_layer_id = project_layer_id
         self.crs_transformer = crs_transformer
         self.rf_api_host = rf_api_host
+        self.set_token(rf_api_host, refresh_token)
 
-        self._get_api_token(refresh_token)
         self._set_labels()
         self._set_class_map()
         self._set_rv_labels()
@@ -65,9 +63,6 @@ class RfAnnotationGroupLabelSource(LabelSource):
             },
             self.crs_transformer,
         )
-
-    def _get_api_token(self, refresh_token: str):
-        self._token = rf.get_api_token(refresh_token, self.rf_api_host)
 
     def _set_labels(self):
         self._raw_labels = rf.get_labels(

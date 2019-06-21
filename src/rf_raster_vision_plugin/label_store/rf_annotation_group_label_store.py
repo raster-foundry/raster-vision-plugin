@@ -5,12 +5,13 @@ from rastervision.data.label_store import LabelStore
 from mypy.types import Dict
 from uuid import UUID
 
+from ..with_token import WithRefreshToken
 from ..http import raster_foundry as rf
 from ..http.converters import annotation_features_from_labels
 from ..label_source.rf_annotation_group_label_source import RfAnnotationGroupLabelSource
 
 
-class RfAnnotationGroupLabelStore(LabelStore):
+class RfAnnotationGroupLabelStore(LabelStore, WithRefreshToken):
     def __init__(
         self,
         annotation_group: UUID,
@@ -27,19 +28,14 @@ class RfAnnotationGroupLabelStore(LabelStore):
         self.crs_transformer = crs_transformer
         self.class_map = class_map
         self.rf_api_host = rf_api_host
-        self._refresh_token = refresh_token
-
-        self._get_api_token(refresh_token)
-
-    def _get_api_token(self, refresh_token: str):
-        self._token = rf.get_api_token(refresh_token, self.rf_api_host)
+        self.set_token(rf_api_host, refresh_token)
 
     def get_labels(self) -> ObjectDetectionLabels:
         return RfAnnotationGroupLabelSource(
             self.annotation_group,
             self.project_id,
             self.project_layer_id,
-            self._refresh_token,
+            self.refresh_token,
             self.crs_transformer,
             self.rf_api_host,
         ).get_labels()

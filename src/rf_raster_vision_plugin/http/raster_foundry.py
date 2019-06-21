@@ -3,8 +3,6 @@ import requests
 from mypy.types import List, Optional
 from uuid import UUID
 
-from .converters import annotation_features_from_labels
-
 
 def get_api_token(refresh_token: str, api_host: str) -> str:
     resp = requests.post(

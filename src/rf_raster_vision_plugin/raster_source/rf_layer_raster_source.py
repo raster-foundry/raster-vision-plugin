@@ -1,22 +1,21 @@
-from uuid import UUID
+from ..with_token import WithRefreshToken
 
-from mypy.types import List, Optional, Tuple
+from mypy.types import List
 import numpy as np
-import rasterio
-from rasterio.io import MemoryFile
-from rasterio.transform import xy
 import rastervision as rv
 from rastervision.core import Box
-from rastervision.data.crs_transformer import CRSTransformer, RasterioCRSTransformer
+from rastervision.data.crs_transformer import CRSTransformer
 from rastervision.data.raster_source.rasterio_source import RasterioSource
 import requests
-from shapely.geometry import shape
-from shapely.ops import cascaded_union
 
-from rf_raster_vision_plugin.http.raster_foundry import get_api_token
+from uuid import UUID
+
+RF_LAYER_RASTER_SOURCE = "RF_LAYER_RASTER_SOURCE"
 
 
-class RfLayerRasterSource(rv.data.RasterSource):
+class RfLayerRasterSource(rv.data.RasterSource, WithRefreshToken):
+    source_type = RF_LAYER_RASTER_SOURCE
+
     def __init__(
         self,
         project_id: UUID,
@@ -38,7 +37,6 @@ class RfLayerRasterSource(rv.data.RasterSource):
             rf_api_host (str): The url host name to use for communicating with Raster Foundry
         """
 
-        self._token = None  # Optional[str]
         self._crs_transformer = None  # Optional[str]
         self.rf_scenes = None  # Optional[dict]
         self.channel_order = channel_order
@@ -46,8 +44,8 @@ class RfLayerRasterSource(rv.data.RasterSource):
         self.project_id = project_id
         self.project_layer_id = project_layer_id
         self.rf_api_host = rf_api_host
-        self._get_api_token(refresh_token)
 
+        self.set_token(rf_api_host, refresh_token)
         self.rf_scenes = self.get_rf_scenes()
         self._rasterio_source = RasterioSource(
             [
@@ -59,11 +57,9 @@ class RfLayerRasterSource(rv.data.RasterSource):
             tmp_dir,
             channel_order=self.channel_order,
         )
-        self._rasterio_source._activate()
 
-    def _get_api_token(self, refresh_token):
-        """Use the refresh token on this raster source to obtain a bearer token"""
-        self._token = get_api_token(refresh_token, self.rf_api_host)
+    def activate(self):
+        self._rasterio_source._activate()
 
     def get_rf_scenes(self):
         """Fetch all Raster Foundry scene metadata for this project layer"""
@@ -101,3 +97,9 @@ class RfLayerRasterSource(rv.data.RasterSource):
 
     def get_crs_transformer(self) -> CRSTransformer:
         return self._rasterio_source.get_crs_transformer()
+
+
+def register_plugin(plugin_registry):
+    plugin_registry.register_config_builder(
+        rv.RASTER_SOURCE, RF_LAYER_RASTER_SOURCE, RfLayerRasterSource
+    )
