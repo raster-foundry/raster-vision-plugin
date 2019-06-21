@@ -59,7 +59,7 @@ class RfLabelSourceConfig(LabelSourceConfig):
     def to_proto(self):
         struct = struct_pb2.Struct()
         for k in self._properties:
-            if k != 'crs_transformer':
+            if k != "crs_transformer":
                 struct[k] = getattr(self, k)
         return LabelSourceConfigMsg(custom_config=struct)
 

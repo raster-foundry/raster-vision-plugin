@@ -2,9 +2,7 @@ from google.protobuf import struct_pb2
 from rastervision.core.config import ConfigBuilder
 from rastervision.data.crs_transformer import CRSTransformer
 from rastervision.data.label_store.label_store_config import LabelStoreConfig
-from rastervision.protos.label_store_pb2 import (
-    LabelStoreConfig as LabelStoreConfigMsg,
-)
+from rastervision.protos.label_store_pb2 import LabelStoreConfig as LabelStoreConfigMsg
 from .rf_annotation_group_label_store import RfAnnotationGroupLabelStore
 from ..immutable_builder import ImmutableBuilder
 
@@ -69,11 +67,11 @@ class RfLabelStoreConfig(LabelStoreConfig):
         struct = struct_pb2.Struct()
         for k in self._properties:
             try:
-                if k != 'crs_transformer':
+                if k != "crs_transformer":
                     struct[k] = getattr(self, k)
 
             except Exception as e:
-                print('Bad key is: ' + k)
+                print("Bad key is: " + k)
                 raise e
         return LabelStoreConfigMsg(custom_config=struct)
 

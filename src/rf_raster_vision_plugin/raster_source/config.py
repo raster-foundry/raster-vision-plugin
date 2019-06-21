@@ -2,7 +2,10 @@ from uuid import UUID
 
 from google.protobuf import struct_pb2
 from rastervision.core.config import ConfigBuilder
-from rastervision.data.raster_source.raster_source_config import RasterSourceConfig
+from rastervision.data.raster_source.raster_source_config import (
+    RasterSourceConfig,
+    RasterSourceConfigBuilder,
+)
 from rastervision.protos.raster_source_pb2 import (
     RasterSourceConfig as RasterSourceConfigMsg,
 )
@@ -22,18 +25,19 @@ class RfRasterSourceConfig(RasterSourceConfig):
         "channel_order",
         "num_channels",
         "rf_api_host",
-        "source_type"
+        "source_type",
     ]
     source_type = "RF_LAYER_RASTER_SOURCE"
     transformers = []
 
-    def __init__(self,
-                 project_id,  # type: UUID
-                 project_layer_id,  # type: UUID
-                 refresh_token,  # type: str
-                 channel_order,  # type: List[int]
-                 num_channels,  # type: int
-                 rf_api_host,  # type: str
+    def __init__(
+        self,
+        project_id,  # type: UUID
+        project_layer_id,  # type: UUID
+        refresh_token,  # type: str
+        channel_order,  # type: List[int]
+        num_channels,  # type: int
+        rf_api_host,  # type: str
     ):
         self.project_id = project_id
         self.project_layer_id = project_layer_id
@@ -73,7 +77,7 @@ class RfRasterSourceConfig(RasterSourceConfig):
         return RasterSourceConfigMsg(custom_config=struct)
 
 
-class RfRasterSourceConfigBuilder(ConfigBuilder, ImmutableBuilder):
+class RfRasterSourceConfigBuilder(RasterSourceConfigBuilder, ImmutableBuilder):
 
     _properties = [
         "project_id",
@@ -82,7 +86,7 @@ class RfRasterSourceConfigBuilder(ConfigBuilder, ImmutableBuilder):
         "channel_order",
         "num_channels",
         "rf_api_host",
-        "source_type"
+        "source_type",
     ]
     config_class = RfRasterSourceConfig
     source_type = RF_LAYER_RASTER_SOURCE

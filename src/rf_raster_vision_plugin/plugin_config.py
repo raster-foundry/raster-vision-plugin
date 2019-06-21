@@ -1,7 +1,10 @@
 import rastervision as rv
 
-from .raster_source.config import (RfRasterSourceConfigBuilder, RF_LAYER_RASTER_SOURCE)
-from .label_source.config import (RfLabelSourceConfigBuilder, RF_ANNOTATION_GROUP_LABEL_SOURCE)
+from .raster_source.config import RfRasterSourceConfigBuilder, RF_LAYER_RASTER_SOURCE
+from .label_source.config import (
+    RfLabelSourceConfigBuilder,
+    RF_ANNOTATION_GROUP_LABEL_SOURCE,
+)
 from .label_store.config import RfLabelStoreConfigBuilder
 from .evaluate.config import VisionObjectDetectionEvaluatorConfigBuilder
 
