@@ -71,10 +71,11 @@ class RfRasterSourceConfig(RasterSourceConfig):
         return self
 
     def to_proto(self):
+        b = super().to_proto()
         struct = struct_pb2.Struct()
         for k in self._properties:
             struct[k] = getattr(self, k)
-        return RasterSourceConfigMsg(custom_config=struct)
+        return b.MergeFrom(RasterSourceConfigMsg(custom_config=struct))
 
 
 class RfRasterSourceConfigBuilder(RasterSourceConfigBuilder, ImmutableBuilder):
