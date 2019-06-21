@@ -97,9 +97,3 @@ class RfLayerRasterSource(rv.data.RasterSource, WithRefreshToken):
 
     def get_crs_transformer(self) -> CRSTransformer:
         return self._rasterio_source.get_crs_transformer()
-
-
-def register_plugin(plugin_registry):
-    plugin_registry.register_config_builder(
-        rv.RASTER_SOURCE, RF_LAYER_RASTER_SOURCE, RfLayerRasterSource
-    )
