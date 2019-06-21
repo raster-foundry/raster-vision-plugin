@@ -24,5 +24,3 @@ def register_plugin(plugin_registry):
         RF_RV_OBJECT_DETECTION_EVALUATOR,
         VisionObjectDetectionEvaluatorConfigBuilder,
     )
-
-    print(plugin_registry.config_builders)

@@ -92,8 +92,9 @@ class RfRasterSourceConfigBuilder(ConfigBuilder, ImmutableBuilder):
         self.rf_api_host = "app.staging.rasterfoundry.com"
 
     def from_proto(self, msg):
+        b = super().from_proto(msg)
         return (
-            self.with_project_id(msg.project_id)
+            b.with_project_id(msg.project_id)
             .with_project_layer_id(msg.project_layer_id)
             .with_refresh_token(msg.refresh_token)
             .with_channel_order(msg.channel_order)
