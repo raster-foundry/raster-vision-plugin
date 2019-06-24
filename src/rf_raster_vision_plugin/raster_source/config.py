@@ -6,6 +6,7 @@ from rastervision.data.raster_source.raster_source_config import (
     RasterSourceConfig,
     RasterSourceConfigBuilder,
 )
+from rastervision.data.crs_transformer import CRSTransformer
 from rastervision.protos.raster_source_pb2 import (
     RasterSourceConfig as RasterSourceConfigMsg,
 )
@@ -28,7 +29,7 @@ class RfRasterSourceConfig(RasterSourceConfig):
         "source_type",
     ]
     source_type = "RF_LAYER_RASTER_SOURCE"
-    transformers = []
+    transformers = []  # type: List[CRSTransformer]
 
     def __init__(
         self,
@@ -45,6 +46,17 @@ class RfRasterSourceConfig(RasterSourceConfig):
         self.channel_order = channel_order
         self.num_channels = num_channels
         self.rf_api_host = rf_api_host
+
+    @classmethod
+    def from_source(cls, source: RfLayerRasterSource):
+        return cls(
+            source.project_id,
+            source.project_layer_id,
+            source.refresh_token,
+            source.channel_order,
+            source.num_channels,
+            source.rf_api_host,
+        )
 
     def create_local(self, tmp_dir: str):
         return self
@@ -75,10 +87,11 @@ class RfRasterSourceConfig(RasterSourceConfig):
         struct = struct_pb2.Struct()
         for k in self._properties:
             struct[k] = getattr(self, k)
-        return b.MergeFrom(RasterSourceConfigMsg(custom_config=struct))
+        b.MergeFrom(RasterSourceConfigMsg(custom_config=struct))
+        return b
 
 
-class RfRasterSourceConfigBuilder(RasterSourceConfigBuilder, ImmutableBuilder):
+class RfRasterSourceConfigBuilder(RasterSourceConfigBuilder, ImmutableBuilder, ActivateMixin):
 
     _properties = [
         "project_id",
@@ -99,13 +112,13 @@ class RfRasterSourceConfigBuilder(RasterSourceConfigBuilder, ImmutableBuilder):
     def from_proto(self, msg):
         b = super().from_proto(msg)
         return (
-            b.with_project_id(msg.project_id)
-            .with_project_layer_id(msg.project_layer_id)
-            .with_refresh_token(msg.refresh_token)
-            .with_channel_order(msg.channel_order)
-            .with_num_channels(msg.num_channels)
-            .with_rf_api_host(msg.rf_api_host)
-            .with_source_type(msg.source_type)
+            b.with_project_id(msg.custom_config["project_id"])
+            .with_project_layer_id(msg.custom_config["project_layer_id"])
+            .with_refresh_token(msg.custom_config["refresh_token"])
+            .with_channel_order([int(x) for x in msg.custom_config["channel_order"]])
+            .with_num_channels(int(msg.custom_config["num_channels"]))
+            .with_rf_api_host(msg.custom_config["rf_api_host"])
+            .with_source_type(msg.custom_config["source_type"])
         )
 
     def with_project_id(self, project_id: UUID):

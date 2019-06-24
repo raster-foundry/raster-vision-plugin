@@ -17,5 +17,5 @@ class ImmutableBuilder(object):
         return {
             k: getattr(self, k)
             for k in self._properties
-            if getattr(self, k) is not None
+            if getattr(self, k, None) is not None
         }

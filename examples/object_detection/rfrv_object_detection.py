@@ -74,7 +74,7 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
             .with_project_id(rf_project_id) \
             .with_project_layer_id(rf_project_layer_id) \
             .with_refresh_token(refresh_token) \
-            .with_crs_transformer(raster_source.get_crs_transformer()) \
+            .with_raster_source(raster_source) \
             .build()
         label_source = label_source_config.create_source()
 
@@ -83,7 +83,7 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
             .with_project_id(rf_project_id) \
             .with_project_layer_id(rf_project_layer_id) \
             .with_refresh_token(refresh_token) \
-            .with_crs_transformer(raster_source.get_crs_transformer()) \
+            .with_raster_source(raster_source) \
             .with_class_map(label_source._class_map) \
             .build()
 
@@ -131,6 +131,7 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
             .with_backend(backend_config) \
             .with_dataset(dataset_config) \
             .with_evaluator(evaluator) \
+            .with_stats_analyzer() \
             .build()
 
         return experiment_config

@@ -1,4 +1,3 @@
-import rastervision as rv
 from rastervision.core.config import ConfigBuilder
 from rastervision.evaluation.evaluator_config import EvaluatorConfig
 from rastervision.protos.evaluator_pb2 import EvaluatorConfig as EvaluatorConfigMsg
@@ -9,7 +8,7 @@ from uuid import UUID
 from ..immutable_builder import ImmutableBuilder
 from .vision_evaluator import VisionObjectDetectionEvaluator
 
-RF_RV_EVALUATOR = "RF_RV_EVALUATOR"
+RF_RV_OBJECT_DETECTION_EVALUATOR = "RF_RV_OBJECT_DETECTION_EVALUATOR"
 
 
 class VisionObjectDetectionEvaluatorConfig(EvaluatorConfig):

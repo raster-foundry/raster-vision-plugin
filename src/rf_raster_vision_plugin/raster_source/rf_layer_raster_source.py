@@ -4,8 +4,10 @@ from mypy.types import List
 import numpy as np
 import rastervision as rv
 from rastervision.core import Box
+from rastervision.core.raster_stats import RasterStats
 from rastervision.data.crs_transformer import CRSTransformer
 from rastervision.data.raster_source.rasterio_source import RasterioSource
+from rastervision.data.raster_transformer.stats_transformer import StatsTransformer
 import requests
 
 from uuid import UUID
@@ -57,6 +59,12 @@ class RfLayerRasterSource(rv.data.RasterSource, WithRefreshToken):
             tmp_dir,
             channel_order=self.channel_order,
         )
+        self.raster_transformers = [StatsTransformer(self.get_stats())]
+
+    def get_stats(self):
+        stats = RasterStats()
+        stats.compute([self._rasterio_source])
+        return stats
 
     def activate(self):
         self._rasterio_source._activate()
@@ -79,12 +87,14 @@ class RfLayerRasterSource(rv.data.RasterSource, WithRefreshToken):
                 headers={"Authorization": "Bearer " + self._token},
                 params={"page": page},
             ).json()
-            scenes.append(next_resp["results"])
+            scenes.append(scenes_resp["results"])
             page += 1
         return scenes
 
     def _get_chip(self, window: Box):
         """Get a chip from a window (in pixel coordinates) for this raster source"""
+        if not self._rasterio_source._mixin_activated:
+            self.activate()
         return self._rasterio_source._get_chip(window)
 
     def get_extent(self):

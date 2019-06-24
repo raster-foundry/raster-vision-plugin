@@ -5,11 +5,14 @@ from .label_source.config import (
     RfLabelSourceConfigBuilder,
     RF_ANNOTATION_GROUP_LABEL_SOURCE,
 )
-from .label_store.config import RfLabelStoreConfigBuilder
-from .evaluate.config import VisionObjectDetectionEvaluatorConfigBuilder
-
-RF_ANNOTATION_GROUP_LABEL_STORE = "RF_ANNOTATION_GROUP_LABEL_STORE"
-RF_RV_OBJECT_DETECTION_EVALUATOR = "RF_RV_OBJECT_DETECTION_EVALUATOR"
+from .label_store.config import (
+    RfLabelStoreConfigBuilder,
+    RF_ANNOTATION_GROUP_LABEL_STORE,
+)
+from .evaluate.config import (
+    VisionObjectDetectionEvaluatorConfigBuilder,
+    RF_RV_OBJECT_DETECTION_EVALUATOR,
+)
 
 
 def register_plugin(plugin_registry):
