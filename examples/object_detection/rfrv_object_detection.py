@@ -9,8 +9,11 @@ import rastervision as rv
 from rastervision.task.task_config import TaskConfig
 from rastervision.data.dataset_config import DatasetConfig
 from rastervision.data.scene_config import SceneConfig
+from rastervision.data.raster_transformer.stats_transformer_config import StatsTransformerConfig
 from rastervision.experiment.experiment_config import ExperimentConfig
 from rastervision.rv_config import RVConfig
+from string import ascii_letters
+import numpy as np
 
 
 class ObjectDetectionExperiments(rv.ExperimentSet):
@@ -31,7 +34,6 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
         batch_size = 16
         debug = False
 
-        # TODO get rf config values
         config_instance = RVConfig.get_instance()
         rf_config = config_instance.get_subconfig('RASTER_FOUNDRY')
 
@@ -39,14 +41,14 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
             exp_id += '-test'
             batch_size = 1
             num_steps = 1
-            debug = True
+            debug = False
 
-        # These should all come from config
         rf_project_id = rf_config('project_id')
         rf_project_layer_id = rf_config('project_layer_id')
         refresh_token = rf_config('refresh_token')
         rf_host = rf_config('rf_api_host')
         vision_host = rf_config('vision_api_host')
+        ground_truth_annotation_group = rf_config('ground_truth_annotation_group')
 
         token = 'Bearer ' + rf.get_api_token(refresh_token, rf_host)
         vision_project = vision.create_project(token, vision_host, 'object detection example')
@@ -60,17 +62,50 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
             'object detection'
         )
 
+        short_hash = ''.join(np.random.choice(list(ascii_letters), 8))
+        train_store_annotation_group = rf.create_annotation_group(
+            token,
+            rf_host,
+            rf_project_id,
+            rf_project_layer_id,
+            'od-example-train-{}'.format(short_hash)
+        )['id']
+        test_store_annotation_group = rf.create_annotation_group(
+            token,
+            rf_host,
+            rf_project_id,
+            rf_project_layer_id,
+            'od-example-test-{}'.format(short_hash)
+        )['id']
+        validation_store_annotation_group = rf.create_annotation_group(
+            token,
+            rf_host,
+            rf_project_id,
+            rf_project_layer_id,
+            'od-example-validation-{}'.format(short_hash)
+        )['id']
+
+        base_config = RfRasterSourceConfigBuilder() \
+            .with_project_id(rf_project_id) \
+            .with_project_layer_id(rf_project_layer_id) \
+            .with_refresh_token(refresh_token) \
+            .with_channel_order([1, 2, 3]) \
+            .with_num_channels(3) \
+            .with_transformers([]) \
+            .build()
+        raster_source = base_config.create_source('/tmp')
         rs_config = RfRasterSourceConfigBuilder() \
             .with_project_id(rf_project_id) \
             .with_project_layer_id(rf_project_layer_id) \
             .with_refresh_token(refresh_token) \
             .with_channel_order([1, 2, 3]) \
             .with_num_channels(3) \
+            .with_transformers([StatsTransformerConfig()
+                                for _ in raster_source.transformers]) \
             .build()
-        raster_source = rs_config.create_source('/tmp')
 
         label_source_config = RfLabelSourceConfigBuilder() \
-            .with_annotation_group('59388cf6-5105-467c-a8f3-f098055be8f0') \
+            .with_annotation_group(ground_truth_annotation_group) \
             .with_project_id(rf_project_id) \
             .with_project_layer_id(rf_project_layer_id) \
             .with_refresh_token(refresh_token) \
@@ -78,33 +113,53 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
             .build()
         label_source = label_source_config.create_source()
 
-        label_store_config = RfLabelStoreConfigBuilder() \
-            .with_annotation_group('59388cf6-5105-467c-a8f3-f098055be8f0') \
+        base_store_builder = RfLabelStoreConfigBuilder() \
             .with_project_id(rf_project_id) \
             .with_project_layer_id(rf_project_layer_id) \
             .with_refresh_token(refresh_token) \
             .with_raster_source(raster_source) \
-            .with_class_map(label_source._class_map) \
+            .with_class_map(label_source._class_map)
+
+        train_label_store_config = base_store_builder \
+            .with_annotation_group(train_store_annotation_group) \
+            .build()
+        test_label_store_config = base_store_builder \
+            .with_annotation_group(test_store_annotation_group) \
+            .build()
+        validation_label_store_config = base_store_builder \
+            .with_annotation_group(validation_store_annotation_group) \
             .build()
 
         task_config = TaskConfig.builder(rv.OBJECT_DETECTION) \
             .with_chip_size(200) \
             .with_classes({
-                '870e82d4-0063-44f4-8a14-950266b23619': (1, 'red')
+                'fb3bb8b9-478b-4106-b13d-d7410aa2cb60': (1, 'red')
             }).build()
 
-        scene_config = SceneConfig.builder() \
+        base_scene_builder = SceneConfig.builder() \
             .with_task(task_config) \
-            .with_raster_source(rs_config) \
+            .with_raster_source(rs_config)
+
+        train_scene_config = base_scene_builder \
             .with_label_source(label_source_config) \
-            .with_label_store(label_store_config) \
-            .with_id('example scene') \
+            .with_label_store(train_label_store_config) \
+            .with_id('example train scene') \
+            .build()
+        validation_scene_config = base_scene_builder \
+            .with_label_source(label_source_config) \
+            .with_label_store(validation_label_store_config) \
+            .with_id('example validation scene') \
+            .build()
+        test_scene_config = base_scene_builder \
+            .with_label_source(label_source_config) \
+            .with_label_store(test_label_store_config) \
+            .with_id('example test scene') \
             .build()
 
         dataset_config = DatasetConfig.builder() \
-            .with_train_scenes([scene_config]) \
-            .with_validation_scenes([scene_config]) \
-            .with_test_scenes([scene_config]) \
+            .with_train_scenes([train_scene_config]) \
+            .with_validation_scenes([validation_scene_config]) \
+            .with_test_scenes([test_scene_config]) \
             .build()
 
         evaluator = VisionObjectDetectionEvaluatorConfigBuilder() \

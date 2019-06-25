@@ -13,7 +13,7 @@ if [[ -n "${RASTER_VISION_DEBUG}" ]]; then
     set -x
 fi
 
-SOURCE="${BASH_SOURCE[0]}"
+
 while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
 DOCKER_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 REPO_ROOT="$( cd -P "$( dirname "$DOCKER_DIR" )" && pwd )"
@@ -101,11 +101,11 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]
 then
     docker run ${RUNTIME} ${NAME} --rm -it \
         -v "${HOME}"/.rastervision:/root/.rastervision \
-	-v "${REPO_ROOT}"/examples:/opt/src/examples \
+	-v "${REPO_ROOT}"/examples:/opt/plugin/examples \
 	-v ${RASTER_VISION_DATA_DIR}:/opt/data \
 	-v $(pwd)/src:/opt/plugin \
-	-v $(pwd)/dependencies:/opt/dependencies \
-	-e PYTHONPATH='$PYTHONPATH:/opt/plugin:/opt/src:/opt/dependencies' \
+	-v $(pwd)/dependencies:/opt/src \
+	-w /opt/plugin \
         ${TENSORBOARD} ${AWS} ${JUPYTER} ${DOCS} \
         ${RV_SRC_FLAGS} \
         ${IMAGE} "${CMD[@]}"

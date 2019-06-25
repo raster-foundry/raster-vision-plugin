@@ -1,7 +1,11 @@
 import requests
 
+import logging
 from mypy.types import List, Optional
 from uuid import UUID
+
+
+log = logging.getLogger(__name__)
 
 
 def get_api_token(refresh_token: str, api_host: str) -> str:
@@ -21,6 +25,14 @@ def get_labels(
     annotation_group_id: UUID,
     window: Optional[str],
 ) -> dict:
+
+    log.info(
+        "Fetching labels for project %s, project layer %s, annotation group %s",
+        project_id,
+        project_layer_id,
+        annotation_group_id,
+    )
+
     def make_request(params):
         resp = requests.get(
             "https://{rf_api_host}/api/projects/{project_id}/layers/{layer_id}/annotations".format(
@@ -38,6 +50,8 @@ def get_labels(
 
     while geojson["hasNext"]:
         params["page"] = params["page"] + 1  # type: ignore
+        if params["page"] % 10 == 0 and params["page"] > 0:  # type: ignore
+            log.info("Fetching page %s of labels", params["page"])
         resp = make_request(params)
         geojson["hasNext"] = resp["hasNext"]
         geojson["features"] += resp["features"]
@@ -71,6 +85,26 @@ def post_labels(
         ),
         headers={"Authorization": jwt},
         json={"features": labels},
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def create_annotation_group(
+    jwt: str,
+    api_host: str,
+    project_id: UUID,
+    project_layer_id: UUID,
+    annotation_group_name: str,
+) -> dict:
+    resp = requests.post(
+        "https://{rf_api_host}/api/projects/{project_id}/layers/{project_layer_id}/annotation-groups".format(
+            rf_api_host=api_host,
+            project_id=project_id,
+            project_layer_id=project_layer_id,
+        ),
+        headers={"Authorization": jwt},
+        json={"name": annotation_group_name, "defaultStyle": {}},
     )
     resp.raise_for_status()
     return resp.json()

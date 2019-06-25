@@ -8,8 +8,12 @@ from ..immutable_builder import ImmutableBuilder
 from ..raster_source.rf_layer_raster_source import RfLayerRasterSource
 from ..raster_source.config import RfRasterSourceConfig
 
+import logging
 from typing import Dict
 from uuid import UUID
+
+
+log = logging.getLogger(__name__)
 
 RF_ANNOTATION_GROUP_LABEL_STORE = "RF_ANNOTATION_GROUP_LABEL_STORE"
 
@@ -70,7 +74,10 @@ class RfLabelStoreConfig(LabelStoreConfig):
         struct = struct_pb2.Struct()
         for k in self._properties:
             if k != "raster_source":
-                struct[k] = getattr(self, k)
+                try:
+                    struct[k] = getattr(self, k)
+                except ValueError as e:
+                    log.warn("Could not serialize something to proto: %s", e.args)
             else:
                 conf = RfRasterSourceConfig.from_source(self.raster_source)
                 struct["channel_order"] = conf.channel_order

@@ -1,3 +1,5 @@
+from copy import deepcopy
+import logging
 from uuid import UUID
 
 from google.protobuf import struct_pb2
@@ -7,6 +9,9 @@ from rastervision.data.raster_source.raster_source_config import (
     RasterSourceConfigBuilder,
 )
 from rastervision.data.crs_transformer import CRSTransformer
+from rastervision.data.raster_transformer.raster_transformer_config import (
+    RasterTransformerConfig,
+)
 from rastervision.protos.raster_source_pb2 import (
     RasterSourceConfig as RasterSourceConfigMsg,
 )
@@ -14,6 +19,9 @@ from typing import List
 
 from .rf_layer_raster_source import RfLayerRasterSource
 from ..immutable_builder import ImmutableBuilder
+
+
+log = logging.getLogger(__name__)
 
 RF_LAYER_RASTER_SOURCE = "RF_LAYER_RASTER_SOURCE"
 
@@ -27,9 +35,9 @@ class RfRasterSourceConfig(RasterSourceConfig):
         "num_channels",
         "rf_api_host",
         "source_type",
+        "transformers",
     ]
     source_type = "RF_LAYER_RASTER_SOURCE"
-    transformers = []  # type: List[CRSTransformer]
 
     def __init__(
         self,
@@ -39,6 +47,7 @@ class RfRasterSourceConfig(RasterSourceConfig):
         channel_order,  # type: List[int]
         num_channels,  # type: int
         rf_api_host,  # type: str
+        transformers,  # type: List[RasterTransformerConfig]
     ):
         self.project_id = project_id
         self.project_layer_id = project_layer_id
@@ -46,6 +55,7 @@ class RfRasterSourceConfig(RasterSourceConfig):
         self.channel_order = channel_order
         self.num_channels = num_channels
         self.rf_api_host = rf_api_host
+        self.transformers = transformers
 
     @classmethod
     def from_source(cls, source: RfLayerRasterSource):
@@ -56,6 +66,7 @@ class RfRasterSourceConfig(RasterSourceConfig):
             source.channel_order,
             source.num_channels,
             source.rf_api_host,
+            source.transformers,
         )
 
     def create_local(self, tmp_dir: str):
@@ -83,15 +94,30 @@ class RfRasterSourceConfig(RasterSourceConfig):
         return self
 
     def to_proto(self):
-        b = super().to_proto()
         struct = struct_pb2.Struct()
         for k in self._properties:
-            struct[k] = getattr(self, k)
-        b.MergeFrom(RasterSourceConfigMsg(custom_config=struct))
-        return b
+            if k != "transformers":
+                struct[k] = getattr(self, k)
+        to_merge = RasterSourceConfigMsg(custom_config=struct)
+        try:
+            b = super().to_proto()
+            b.MergeFrom(to_merge)
+            return b
+        except AttributeError as e:
+            log.warn("Could not serialize something to proto: %s", e.args)
+            self.transformers = []
+            b = super().to_proto()
+            b.MergeFrom(to_merge)
+            return b
+
+    def save_bundle_files(self, bundle_dir):
+        try:
+            return super().save_bundle_files(bundle_dir)
+        except AttributeError:
+            return (self, [])
 
 
-class RfRasterSourceConfigBuilder(RasterSourceConfigBuilder, ImmutableBuilder, ActivateMixin):
+class RfRasterSourceConfigBuilder(RasterSourceConfigBuilder, ImmutableBuilder):
 
     _properties = [
         "project_id",
@@ -101,6 +127,7 @@ class RfRasterSourceConfigBuilder(RasterSourceConfigBuilder, ImmutableBuilder, A
         "num_channels",
         "rf_api_host",
         "source_type",
+        "transformers",
     ]
     config_class = RfRasterSourceConfig
     source_type = RF_LAYER_RASTER_SOURCE
@@ -119,6 +146,7 @@ class RfRasterSourceConfigBuilder(RasterSourceConfigBuilder, ImmutableBuilder, A
             .with_num_channels(int(msg.custom_config["num_channels"]))
             .with_rf_api_host(msg.custom_config["rf_api_host"])
             .with_source_type(msg.custom_config["source_type"])
+            .with_transformers(msg.transformers)
         )
 
     def with_project_id(self, project_id: UUID):
@@ -141,3 +169,6 @@ class RfRasterSourceConfigBuilder(RasterSourceConfigBuilder, ImmutableBuilder, A
 
     def with_source_type(self, source_type: str):
         return self.with_property("source_type", source_type)
+
+    def with_transformers(self, transformers: List[RasterTransformerConfig]):
+        return self.with_property("transformers", transformers)

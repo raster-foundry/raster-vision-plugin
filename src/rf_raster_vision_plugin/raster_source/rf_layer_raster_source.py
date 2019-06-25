@@ -6,16 +6,20 @@ import rastervision as rv
 from rastervision.core import Box
 from rastervision.core.raster_stats import RasterStats
 from rastervision.data.crs_transformer import CRSTransformer
+from rastervision.data.activate_mixin import ActivateMixin
 from rastervision.data.raster_source.rasterio_source import RasterioSource
 from rastervision.data.raster_transformer.stats_transformer import StatsTransformer
 import requests
 
+import logging
+from urllib.parse import unquote
 from uuid import UUID
 
 RF_LAYER_RASTER_SOURCE = "RF_LAYER_RASTER_SOURCE"
+log = logging.getLogger(__name__)
 
 
-class RfLayerRasterSource(rv.data.RasterSource, WithRefreshToken):
+class RfLayerRasterSource(rv.data.RasterSource, WithRefreshToken, ActivateMixin):
     source_type = RF_LAYER_RASTER_SOURCE
 
     def __init__(
@@ -49,25 +53,27 @@ class RfLayerRasterSource(rv.data.RasterSource, WithRefreshToken):
 
         self.set_token(rf_api_host, refresh_token)
         self.rf_scenes = self.get_rf_scenes()
-        self._rasterio_source = RasterioSource(
-            [
-                x["ingestLocation"]
-                for x in self.rf_scenes
-                if x["statusFields"]["ingestStatus"] == "INGESTED"
-            ],
-            [],
-            tmp_dir,
-            channel_order=self.channel_order,
+        rf_scene_uris = [
+            unquote(x["ingestLocation"])
+            for x in self.rf_scenes
+            if x["statusFields"]["ingestStatus"] == "INGESTED"
+        ]
+        self._rasterio_source_no_xform = RasterioSource(
+            rf_scene_uris, [], tmp_dir, channel_order=self.channel_order
         )
-        self.raster_transformers = [StatsTransformer(self.get_stats())]
+        self.transformers = [StatsTransformer(self.get_stats())]
+        self.raster_transformers = self.transformers
+        self._rasterio_source = RasterioSource(
+            rf_scene_uris, self.transformers, tmp_dir, channel_order=self.channel_order
+        )
+
+    def _subcomponents_to_activate(self):
+        return [self._rasterio_source]
 
     def get_stats(self):
         stats = RasterStats()
-        stats.compute([self._rasterio_source])
+        stats.compute([self._rasterio_source_no_xform])
         return stats
-
-    def activate(self):
-        self._rasterio_source._activate()
 
     def get_rf_scenes(self):
         """Fetch all Raster Foundry scene metadata for this project layer"""
@@ -82,18 +88,22 @@ class RfLayerRasterSource(rv.data.RasterSource, WithRefreshToken):
         scenes = scenes_resp["results"]
         page = 1
         while scenes_resp["hasNext"]:
+            if page % 10 == 0 and page > 0:
+                log.info("Fetching page %s of scenes", page)
             scenes_resp = requests.get(
                 scenes_url,
                 headers={"Authorization": "Bearer " + self._token},
                 params={"page": page},
             ).json()
-            scenes.append(scenes_resp["results"])
+            if len(scenes_resp["results"]) > 0:
+                scenes.append(scenes_resp["results"])
             page += 1
         return scenes
 
     def _get_chip(self, window: Box):
         """Get a chip from a window (in pixel coordinates) for this raster source"""
         if not self._rasterio_source._mixin_activated:
+            print("ACTIVATING RASTER SOURCE")
             self.activate()
         return self._rasterio_source._get_chip(window)
 
