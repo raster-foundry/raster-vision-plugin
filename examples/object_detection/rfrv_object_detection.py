@@ -8,12 +8,14 @@ from rf_raster_vision_plugin.http import vision
 import rastervision as rv
 from rastervision.task.task_config import TaskConfig
 from rastervision.data.dataset_config import DatasetConfig
+from rastervision.data.raster_source.rasterio_source_config import RasterioSourceConfig
 from rastervision.data.scene_config import SceneConfig
 from rastervision.data.raster_transformer.stats_transformer_config import StatsTransformerConfig
 from rastervision.experiment.experiment_config import ExperimentConfig
 from rastervision.rv_config import RVConfig
 import numpy as np
 import os
+from urllib.parse import unquote
 
 
 words = [x.strip() for x in open('/opt/plugin/american-english', 'r').readlines()
@@ -44,6 +46,7 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
         batch_size = 16
         debug = False
 
+        RVConfig.set_tmp_dir(tmp_dir)
         config_instance = RVConfig.get_instance()
         rf_config = config_instance.get_subconfig('RASTER_FOUNDRY')
 
@@ -71,6 +74,7 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
             'complicated and good',
             'object detection'
         )
+        rf_scenes = rf.get_rf_scenes(token, rf_host, rf_project_id, rf_project_layer_id)
 
         train_store_annotation_group = rf.create_annotation_group(
             token,
@@ -94,24 +98,10 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
             'od-example-validation-{}'.format(short_hash)
         )['id']
 
-        base_config = RfRasterSourceConfigBuilder() \
-            .with_project_id(rf_project_id) \
-            .with_project_layer_id(rf_project_layer_id) \
-            .with_refresh_token(refresh_token) \
-            .with_channel_order([1, 2, 3]) \
-            .with_num_channels(3) \
-            .with_transformers([]) \
+        rs_config = RasterioSourceConfig.builder(rv.RASTERIO_SOURCE) \
+            .with_uris([unquote(x["ingestLocation"]) for x in rf_scenes]) \
             .build()
-        raster_source = base_config.create_source(tmp_dir)
-        rs_config = RfRasterSourceConfigBuilder() \
-            .with_project_id(rf_project_id) \
-            .with_project_layer_id(rf_project_layer_id) \
-            .with_refresh_token(refresh_token) \
-            .with_channel_order([1, 2, 3]) \
-            .with_num_channels(3) \
-            .with_transformers([StatsTransformerConfig()
-                                for _ in raster_source.transformers]) \
-            .build()
+        raster_source = rs_config.create_source(tmp_dir)
 
         label_source_config = RfLabelSourceConfigBuilder() \
             .with_annotation_group(ground_truth_annotation_group) \
