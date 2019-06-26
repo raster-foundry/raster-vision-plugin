@@ -43,7 +43,6 @@ class RfLayerRasterSource(rv.data.RasterSource, WithRefreshToken, ActivateMixin)
             rf_api_host (str): The url host name to use for communicating with Raster Foundry
         """
 
-        self._crs_transformer = None  # Optional[str]
         self.rf_scenes = None  # Optional[dict]
         self.channel_order = channel_order
         self.num_channels = num_channels
@@ -102,9 +101,6 @@ class RfLayerRasterSource(rv.data.RasterSource, WithRefreshToken, ActivateMixin)
 
     def _get_chip(self, window: Box):
         """Get a chip from a window (in pixel coordinates) for this raster source"""
-        if not self._rasterio_source._mixin_activated:
-            print("ACTIVATING RASTER SOURCE")
-            self.activate()
         return self._rasterio_source._get_chip(window)
 
     def get_extent(self):

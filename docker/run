@@ -106,6 +106,7 @@ then
 	-v $(pwd)/src:/opt/plugin \
 	-v $(pwd)/dependencies:/opt/src \
 	-w /opt/plugin \
+        --network=host \
         ${TENSORBOARD} ${AWS} ${JUPYTER} ${DOCS} \
         ${RV_SRC_FLAGS} \
         ${IMAGE} "${CMD[@]}"

@@ -12,12 +12,22 @@ from rastervision.data.scene_config import SceneConfig
 from rastervision.data.raster_transformer.stats_transformer_config import StatsTransformerConfig
 from rastervision.experiment.experiment_config import ExperimentConfig
 from rastervision.rv_config import RVConfig
-from string import ascii_letters
 import numpy as np
+import os
+
+
+words = [x.strip() for x in open('/opt/plugin/american-english', 'r').readlines()
+         if "'" not in x]
+short_hash = '-'.join(np.random.choice(words, 2))
+print('***************************')
+print('Tmp directory is: ', short_hash)
+print('***************************')
+tmp_dir = '/tmp/' + short_hash
+os.mkdir(tmp_dir)
 
 
 class ObjectDetectionExperiments(rv.ExperimentSet):
-    def exp_rfrv(self, root_uri='/tmp', test=True):
+    def exp_rfrv(self, root_uri=tmp_dir, test=True):
         """Object detection experiment on xView data.
 
         Run the data prep notebook before running this experiment. Note all URIs can be
@@ -41,7 +51,7 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
             exp_id += '-test'
             batch_size = 1
             num_steps = 1
-            debug = False
+            debug = True
 
         rf_project_id = rf_config('project_id')
         rf_project_layer_id = rf_config('project_layer_id')
@@ -62,7 +72,6 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
             'object detection'
         )
 
-        short_hash = ''.join(np.random.choice(list(ascii_letters), 8))
         train_store_annotation_group = rf.create_annotation_group(
             token,
             rf_host,
@@ -93,7 +102,7 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
             .with_num_channels(3) \
             .with_transformers([]) \
             .build()
-        raster_source = base_config.create_source('/tmp')
+        raster_source = base_config.create_source(tmp_dir)
         rs_config = RfRasterSourceConfigBuilder() \
             .with_project_id(rf_project_id) \
             .with_project_layer_id(rf_project_layer_id) \
@@ -109,7 +118,7 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
             .with_project_id(rf_project_id) \
             .with_project_layer_id(rf_project_layer_id) \
             .with_refresh_token(refresh_token) \
-            .with_raster_source(raster_source) \
+            .with_crs_transformer(raster_source.get_crs_transformer()) \
             .build()
         label_source = label_source_config.create_source()
 
@@ -117,7 +126,7 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
             .with_project_id(rf_project_id) \
             .with_project_layer_id(rf_project_layer_id) \
             .with_refresh_token(refresh_token) \
-            .with_raster_source(raster_source) \
+            .with_crs_transformer(raster_source.get_crs_transformer()) \
             .with_class_map(label_source._class_map)
 
         train_label_store_config = base_store_builder \
@@ -167,7 +176,7 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
             .with_experiment_id(vision_experiment['id']) \
             .with_refresh_token(refresh_token) \
             .with_class_map(label_source._class_map) \
-            .with_output_uri('/tmp') \
+            .with_output_uri(tmp_dir) \
             .build()
 
         backend_config = rv.BackendConfig.builder(rv.TF_OBJECT_DETECTION) \
@@ -181,7 +190,7 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
         # then create an experiment config that uses the evaluator and the task and the dataset
         experiment_config = ExperimentConfig.builder() \
             .with_id('testexperiment') \
-            .with_root_uri('/tmp') \
+            .with_root_uri(tmp_dir) \
             .with_task(task_config) \
             .with_backend(backend_config) \
             .with_dataset(dataset_config) \
