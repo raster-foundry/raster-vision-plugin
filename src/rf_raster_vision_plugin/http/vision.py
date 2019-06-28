@@ -1,13 +1,12 @@
 import requests
 from requests.models import Response
-from rastervision.evaluation.class_evaluation_item import ClassEvaluationItem
 
 
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 
-def create_project(jwt: str, api_host: str, name: str) -> Response:
+def create_project(jwt: str, api_host: str, name: str) -> dict:
     """Create a project in the Vision API
 
     Args:
@@ -57,22 +56,12 @@ def create_experiment(
     return resp.json()
 
 
-def fetch_project(project_id: UUID) -> Response:
-    """Fetch an existing project from the Vision API
-
-    Args:
-        project_id (Option[UUID]): the id of the project to fetch
-    """
-
-    pass
-
-
 def save_experiment_scores(
     jwt: str,
     api_host: str,
     vision_project_id: UUID,
     experiment_id: UUID,
-    eval_item: ClassEvaluationItem,
+    eval_item: dict,
 ) -> Response:
     """Save evaluation scores for an experiment
 
@@ -91,12 +80,14 @@ def save_experiment_scores(
     base_experiment["f1Score"] = eval_item["f1"]
     base_experiment["precision"] = eval_item["precision"]
     base_experiment["recall"] = eval_item["recall"]
-    return requests.put(
+    resp = requests.put(
         "https://{api_host}/api/projects/{project_id}/experiments/{experiment_id}".format(
             api_host=api_host, project_id=vision_project_id, experiment_id=experiment_id
         ),
         headers=headers,
     )
+    resp.raise_for_status()
+    return resp
 
 
 def save_scene_with_eval(
@@ -104,9 +95,42 @@ def save_scene_with_eval(
     api_host: str,
     vision_project_id: UUID,
     experiment_id: UUID,
+    rf_project_id: UUID,
+    rf_project_layer_id: UUID,
+    source_annotation_group: UUID,
+    aoi_annotation_group: Optional[UUID],
+    store_annotation_group: Optional[UUID],
     scene_name: str,
-    eval_item: ClassEvaluationItem,
+    scene_type: str,
+    eval_items: List[dict] = [],
 ) -> Response:
-    # TODO this creates a scene with the given name and updates its eval info. It's basically like the
-    # save scores function for experiments above
-    return
+    if eval_items != []:
+        class_stats = [x for x in eval_items if x["class_name"] != "average"]
+        overall = [x for x in eval_items if x["class_name"] == "average"][0]
+    else:
+        class_stats = []
+        overall = {}
+    scene_create = {
+        "sceneType": scene_type,
+        "sourceProject": rf_project_id,
+        "sourceProjectLayer": rf_project_layer_id,
+        "sourceAnnotationGroup": source_annotation_group,
+        "aoiAnnotationGroup": aoi_annotation_group,
+        "storeAnnotationGroup": store_annotation_group,
+        "classStatistics": class_stats,
+        "f1Score": overall.get("f1"),
+        "precision": overall.get("precision"),
+        "recall": overall.get("recall"),
+    }
+
+    resp = requests.post(
+        "https://{vision_api_host}/api/projects/{project_id}/experiments/{experiment_id}/scenes".format(
+            vision_api_host=api_host,
+            project_id=vision_project_id,
+            experiment_id=experiment_id,
+        ),
+        headers={"Authorization": jwt},
+        json=scene_create,
+    )
+    resp.raise_for_status()
+    return resp

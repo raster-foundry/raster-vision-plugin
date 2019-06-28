@@ -17,6 +17,20 @@ def get_api_token(refresh_token: str, api_host: str) -> str:
     return resp.json()["id_token"]
 
 
+def create_annotations(
+    jwt: str, api_host: str, project_id: UUID, project_layer_id: UUID, annotations: dict
+) -> dict:
+    resp = requests.post(
+        "https://{rf_api_host}/api/projects/{project_id}/layers/{layer_id}/annotations".format(
+            rf_api_host=api_host, project_id=project_id, layer_id=project_id
+        ),
+        headers={"Authorization": jwt},
+        json=annotations,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
 def get_labels(
     jwt: str,
     api_host: str,

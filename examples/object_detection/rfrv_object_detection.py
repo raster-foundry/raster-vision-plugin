@@ -30,6 +30,8 @@ def _to_rv_feature(annotation: dict, class_map: dict) -> dict:
     }
 
 
+# TODO: this also needs to create the training scene in vision -- see `post_script.py` and
+# `vision.py` in `http`, specifically save_scene_with_evals -- you don't have to pass evals
 def setup(tmp_dir: str, rf_config: NamespacedConfig, name: str) -> dict:
     rf_project_id = rf_config('project_id')
     rf_project_layer_id = rf_config('project_layer_id')
@@ -65,11 +67,13 @@ def setup(tmp_dir: str, rf_config: NamespacedConfig, name: str) -> dict:
         ]
     }
     for path in ["label_source_geojson_path",
+                 # TODO these shouldn't be written out to start
                  "train_label_store_path",
                  "test_label_store_path",
                  "validation_label_store_path"]:
         geojson_path = os.path.join(tmp_dir, 'rv-labels', rf_config(path))
         with open(geojson_path, 'w') as outf:
+            # Use rastervision util instead
             outf.write(json.dumps(geojson))
 
     rs_config_builder = RasterioSourceConfig.builder(rv.RASTERIO_SOURCE).with_uris(
