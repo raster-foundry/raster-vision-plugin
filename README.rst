@@ -22,6 +22,21 @@ A plugin to use Raster Foundry as a data management layer in Raster Vision
 
 * Free software: Apache Software License 2.0
 
+An example is included in the examples/ repository. To run the example:
+
+::
+
+   AWS_PROFILE=raster-foundry docker/run --aws
+   rastervision -p production run local -e examples.object_detection.rfrv_object_detection
+
+After the example has completed (give it a while), send artifacts to the Raster Foundry and
+Vision App APIs with
+
+::
+
+   python examples/object_detection/post_script.py
+
+
 Installation
 ============
 
@@ -34,4 +49,3 @@ Documentation
 
 Development
 ===========
-
