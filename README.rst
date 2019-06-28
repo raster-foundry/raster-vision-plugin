@@ -22,10 +22,11 @@ A plugin to use Raster Foundry as a data management layer in Raster Vision
 
 * Free software: Apache Software License 2.0
 
-An example is included in the examples/ repository. To run the example, setup a configuration file
+An example is included in the `examples/` repository. To run the example, setup a configuration file
 in `$HOME/.rastervision/production` like the following:
 
 ::
+
    [RASTER_FOUNDRY]
    refresh_token=<your RF production refresh token>
    project_id=7e584c31-f5d1-4a02-9428-e83006642375
