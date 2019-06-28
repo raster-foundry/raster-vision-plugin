@@ -40,7 +40,6 @@ def setup(tmp_dir: str, rf_config: NamespacedConfig, name: str) -> dict:
     token = 'Bearer ' + rf.get_api_token(refresh_token, rf_host)
     rf_scenes = rf.get_rf_scenes(token, rf_host, rf_project_id, rf_project_layer_id)
     project = rf.get_project(token, rf_host, rf_project_id)
-    colors = ["red", "green", "blue", "yellow"]
     class_map = {
         item["id"]: idx + 1 for idx, item in enumerate(project["extras"]["annotate"]["labels"])
     }
@@ -52,6 +51,13 @@ def setup(tmp_dir: str, rf_config: NamespacedConfig, name: str) -> dict:
         ground_truth_annotation_group,
         None
     )
+    # take a 10% sample of labels
+    print('Original number of ground truth features: ', len(labels["features"]))
+    sample_size = len(labels["features"]) // 10
+    labels["features"] = np.random.choice(
+        labels["features"], size=sample_size, replace=False
+    ).tolist()
+    print('Ending number of ground truth features: ', len(labels["features"]))
 
     geojson = {
         "features": [
@@ -71,9 +77,7 @@ def setup(tmp_dir: str, rf_config: NamespacedConfig, name: str) -> dict:
     ).with_channel_order([0, 1, 2])
     return {
         "raster_source_builder": rs_config_builder,
-        "task_class_map": {
-            k: (v, colors[v - 1]) for k, v in class_map.items()
-        }
+        "task_class_map": class_map
     }
 
 

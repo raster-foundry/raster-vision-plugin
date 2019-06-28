@@ -88,12 +88,25 @@ def save_experiment_scores(
     )
     fetched.raise_for_status()
     base_experiment = fetched.json()
-    base_experiment["f1Score"] = eval_item.f1_score
-    base_experiment["precision"] = eval_item.precision
-    base_experiment["recall"] = eval_item.recall
+    base_experiment["f1Score"] = eval_item["f1"]
+    base_experiment["precision"] = eval_item["precision"]
+    base_experiment["recall"] = eval_item["recall"]
     return requests.put(
         "https://{api_host}/api/projects/{project_id}/experiments/{experiment_id}".format(
             api_host=api_host, project_id=vision_project_id, experiment_id=experiment_id
         ),
         headers=headers,
     )
+
+
+def save_scene_with_eval(
+    jwt: str,
+    api_host: str,
+    vision_project_id: UUID,
+    experiment_id: UUID,
+    scene_name: str,
+    eval_item: ClassEvaluationItem,
+) -> Response:
+    # TODO this creates a scene with the given name and updates its eval info. It's basically like the
+    # save scores function for experiments above
+    return

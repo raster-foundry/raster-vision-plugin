@@ -113,12 +113,10 @@ def create_annotation_group(
 def get_rf_scenes(jwt: str, api_host: str, project_id: UUID, project_layer_id: UUID):
     """Fetch all Raster Foundry scene metadata for this project layer"""
     scenes_url = "https://{api_host}/api/projects/{project_id}/layers/{layer_id}/scenes".format(
-        api_host=api_host,
-        project_id=project_id,
-        layer_id=project_layer_id,
+        api_host=api_host, project_id=project_id, layer_id=project_layer_id
     )
     scenes_resp = requests.get(
-        scenes_url, headers={"Authorization": jwt}, params={'ingestStatus': 'INGESTED'}
+        scenes_url, headers={"Authorization": jwt}, params={"ingestStatus": "INGESTED"}
     ).json()
     scenes = scenes_resp["results"]
     page = 1
@@ -126,9 +124,7 @@ def get_rf_scenes(jwt: str, api_host: str, project_id: UUID, project_layer_id: U
         if page % 10 == 0 and page > 0:
             log.info("Fetching page %s of scenes", page)
         scenes_resp = requests.get(
-            scenes_url,
-            headers={"Authorization": jwt},
-            params={"page": page},
+            scenes_url, headers={"Authorization": jwt}, params={"page": page}
         ).json()
         if len(scenes_resp["results"]) > 0:
             scenes.extend(scenes_resp["results"])
