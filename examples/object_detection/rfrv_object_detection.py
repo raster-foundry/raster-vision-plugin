@@ -58,19 +58,19 @@ def setup(tmp_dir: str, rf_config: NamespacedConfig, name: str) -> dict:
             _to_rv_feature(feat, class_map) for feat in labels["features"]
         ]
     }
-    label_path = os.path.join(tmp_dir, 'rf-labels.geojson')
-    with open(label_path, 'w') as outf:
-        outf.write(json.dumps(geojson))
+    for path in ["label_source_geojson_path",
+                 "train_label_store_path",
+                 "test_label_store_path",
+                 "validation_label_store_path"]:
+        geojson_path = os.path.join(tmp_dir, 'rv-labels', rf_config(path))
+        with open(geojson_path, 'w') as outf:
+            outf.write(json.dumps(geojson))
 
     rs_config_builder = RasterioSourceConfig.builder(rv.RASTERIO_SOURCE).with_uris(
         [unquote(x["ingestLocation"]) for x in rf_scenes]
     ).with_channel_order([0, 1, 2])
-    label_source_config_builder = ObjectDetectionLabelSourceConfig.builder(rv.OBJECT_DETECTION) \
-        .with_uri(label_path)
-
     return {
         "raster_source_builder": rs_config_builder,
-        "label_source_builder": label_source_config_builder,
         "task_class_map": {
             k: (v, colors[v - 1]) for k, v in class_map.items()
         }
@@ -107,18 +107,20 @@ class ObjectDetectionExperiments(rv.ExperimentSet):
         init = setup(root_uri, rf_config, random_name)
 
         rs_config = init["raster_source_builder"].with_stats_transformer().build()
-        label_source_config = init["label_source_builder"].build()
+        label_source_config = ObjectDetectionLabelSourceConfig.builder(rv.OBJECT_DETECTION) \
+            .with_uri(os.path.join(root_uri, 'rv-labels', rf_config("label_source_geojson_path"))) \
+            .build()
 
         base_store_builder = ObjectDetectionGeoJSONStoreConfig.builder(rv.OBJECT_DETECTION_GEOJSON)
 
         train_label_store_config = base_store_builder \
-            .with_uri(os.path.join(root_uri, 'rv-labels', 'train')) \
+            .with_uri(os.path.join(root_uri, 'rv-labels', rf_config("train_label_store_path"))) \
             .build()
         validation_label_store_config = base_store_builder \
-            .with_uri(os.path.join(root_uri, 'rv-labels', 'validation')) \
+            .with_uri(os.path.join(root_uri, 'rv-labels', rf_config("validation_label_store_path"))) \
             .build()
         test_label_store_config = base_store_builder \
-            .with_uri(os.path.join(root_uri, 'rv-labels', 'test')) \
+            .with_uri(os.path.join(root_uri, 'rv-labels', rf_config("test_label_store_path"))) \
             .build()
 
         task_config = rv.TaskConfig.builder(rv.OBJECT_DETECTION) \
