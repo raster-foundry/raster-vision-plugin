@@ -76,6 +76,10 @@ do
         CMD=(/run_jupyter.sh --ip 0.0.0.0 --port 8888 --no-browser --allow-root --notebook-dir=/opt/notebooks)
         shift
         ;;
+        --debug)
+        DEBUG="-p 3002:3000"
+        shift
+        ;;
         *) # unknown option
         POSITIONAL+=("$1") # save it in an array for later
         shift # past argument
@@ -100,13 +104,10 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]
 then
     docker run ${RUNTIME} ${NAME} --rm -it \
         -v "${HOME}"/.rastervision:/root/.rastervision \
-	-v "${REPO_ROOT}"/examples:/opt/plugin/examples \
+	-v "${REPO_ROOT}"/src:/opt/plugin \
 	-v ${RASTER_VISION_DATA_DIR}:/opt/data \
-	-v $(pwd)/src:/opt/plugin \
-	-v $(pwd)/dependencies:/opt/src \
-	-w /opt/plugin \
-        --network=host \
+    -w /opt/plugin \
         ${TENSORBOARD} ${AWS} ${JUPYTER} ${DOCS} \
-        ${RV_SRC_FLAGS} \
+        ${RV_SRC_FLAGS} ${DEBUG} \
         ${IMAGE} "${CMD[@]}"
 fi

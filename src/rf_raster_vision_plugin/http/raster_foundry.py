@@ -20,14 +20,21 @@ def get_api_token(refresh_token: str, api_host: str) -> str:
 def create_annotations(
     jwt: str, api_host: str, project_id: UUID, project_layer_id: UUID, annotations: dict
 ) -> dict:
-    resp = requests.post(
-        "https://{rf_api_host}/api/projects/{project_id}/layers/{layer_id}/annotations".format(
-            rf_api_host=api_host, project_id=project_id, layer_id=project_id
-        ),
-        headers={"Authorization": jwt},
-        json=annotations,
-    )
-    resp.raise_for_status()
+    features = annotations['features']
+    num_features = len(features)
+    max_per_req = 1000
+    for start in range(0, num_features, max_per_req):
+        end = min(start+max_per_req, num_features)
+        subset_features = features[start:end]
+        subset_annotations = {'type': 'FeatureCollection', 'features': subset_features}
+        resp = requests.post(
+            "https://{rf_api_host}/api/projects/{project_id}/layers/{layer_id}/annotations".format(
+                rf_api_host=api_host, project_id=project_id, layer_id=project_layer_id
+            ),
+            headers={"Authorization": jwt},
+            json=subset_annotations,
+        )
+        resp.raise_for_status()
     return resp.json()
 
 

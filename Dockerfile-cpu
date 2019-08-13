@@ -1,6 +1,7 @@
 ARG BASE_IMAGE
 FROM $BASE_IMAGE
 
-COPY ./examples /opt/src/examples
+COPY ./src/ /opt/plugin/
+RUN pip install mypy
 
 CMD ["bash"]

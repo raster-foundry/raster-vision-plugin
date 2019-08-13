@@ -12,13 +12,15 @@ from everett.manager import NamespacedConfig
 import numpy as np
 from urllib.parse import unquote
 
+'''
 words = [x.strip() for x in open('/opt/plugin/american-english', 'r').readlines()
          if "'" not in x]
 random_name = '-'.join(np.random.choice(words, 2))
 print('***************************')
 print('Experiment name is: ', random_name)
 print('***************************')
-
+'''
+random_name = 'lf_exp'
 
 def _to_rv_feature(annotation: dict, class_map: dict) -> dict:
     """Convert the geojson from Raster Foundry's API into the minimum dict required by Raster Vision
